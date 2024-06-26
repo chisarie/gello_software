@@ -158,7 +158,17 @@ class MujocoRobotServer:
 
         self._num_joints = self._model.nu
 
-        self._joint_state = np.zeros(self._num_joints)
+        # self._joint_state = np.zeros(self._num_joints)
+        self._joint_state = np.array([
+            -0.13935425877571106,
+            -0.020481698215007782,
+            -0.05201413854956627,
+            -2.0691256523132324,
+            0.05058913677930832,
+            2.0028650760650635,
+            -0.9167874455451965,
+            1
+        ])
         self._joint_cmd = self._joint_state
 
         self._zmq_server = ZMQRobotServer(robot=self, host=host, port=port)
