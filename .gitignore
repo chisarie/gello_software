@@ -27,3 +27,6 @@ outputs/*
 # vim
 *.swp
 MUJOCO_LOG.TXT
+
+.vscode/*
+arena.xml
