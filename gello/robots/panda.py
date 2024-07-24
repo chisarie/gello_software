@@ -53,7 +53,11 @@ class PandaRobot(Robot):
         import torch
 
         self.robot.update_desired_joint_positions(torch.tensor(joint_state[:-1]))
-        self.gripper.goto(width=(MAX_OPEN * (1 - joint_state[-1])), speed=1, force=1)
+        gripper_closed = joint_state[-1] > 0.5
+        if gripper_closed:
+            self.gripper.grasp(speed=0.1, force=1.0)
+        else:
+            self.gripper.goto(width=MAX_OPEN, speed=1, force=1)
 
     def get_observations(self) -> Dict[str, np.ndarray]:
         joints = self.get_joint_state()
