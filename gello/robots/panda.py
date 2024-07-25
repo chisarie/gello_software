@@ -1,11 +1,12 @@
 import time
+import torch
 from typing import Dict
 
 import numpy as np
 
 from gello.robots.robot import Robot
 
-MAX_OPEN = 0.09
+MAX_OPEN = 0.08
 
 
 class PandaRobot(Robot):
@@ -23,6 +24,7 @@ class PandaRobot(Robot):
         self.robot.go_home()
         self.robot.start_joint_impedance()
         self.gripper.goto(width=MAX_OPEN, speed=255, force=255)
+        self.gripper_closed = False
         time.sleep(1)
 
     def num_dofs(self) -> int:
@@ -50,14 +52,17 @@ class PandaRobot(Robot):
         Args:
             joint_state (np.ndarray): The state to command the leader robot to.
         """
-        import torch
-
         self.robot.update_desired_joint_positions(torch.tensor(joint_state[:-1]))
-        gripper_closed = joint_state[-1] > 0.5
-        if gripper_closed:
+        gripper_closed = joint_state[-1] > 0.25
+        print("gripper_closed: ", gripper_closed)
+        if gripper_closed and not self.gripper_closed:
+            self.gripper_closed = True
             self.gripper.grasp(speed=0.1, force=1.0)
-        else:
+        elif not gripper_closed and self.gripper_closed:
+            self.gripper_closed = False
+            self.gripper.stop()
             self.gripper.goto(width=MAX_OPEN, speed=1, force=1)
+        return
 
     def get_observations(self) -> Dict[str, np.ndarray]:
         joints = self.get_joint_state()
