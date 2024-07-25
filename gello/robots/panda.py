@@ -54,7 +54,6 @@ class PandaRobot(Robot):
         """
         self.robot.update_desired_joint_positions(torch.tensor(joint_state[:-1]))
         gripper_closed = joint_state[-1] > 0.25
-        print("gripper_closed: ", gripper_closed)
         if gripper_closed and not self.gripper_closed:
             self.gripper_closed = True
             self.gripper.grasp(speed=0.1, force=1.0)
