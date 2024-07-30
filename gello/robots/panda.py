@@ -1,10 +1,14 @@
+import cv2
 import time
 import torch
+import zenoh
 from typing import Dict
-
+from functools import cached_property
 import numpy as np
 
 from gello.robots.robot import Robot
+from torchcontrol.transform import Rotation
+from robo_utils.zenoh_utils import np_to_zenoh
 
 MAX_OPEN = 0.08
 
@@ -26,6 +30,16 @@ class PandaRobot(Robot):
         self.gripper.goto(width=MAX_OPEN, speed=255, force=255)
         self.gripper_closed = False
         time.sleep(1)
+
+        session = zenoh.open()
+        self.ee_desired_pub = session.declare_publisher("panda2/ee_desired")
+        return
+
+    @cached_property
+    def link8Thand(self) -> np.ndarray:
+        link8Thand = np.eye(4)
+        link8Thand[:3, :3], _ = cv2.Rodrigues(np.array([0, 0, -np.pi / 4]))
+        return link8Thand
 
     def num_dofs(self) -> int:
         """Get the number of joints of the robot.
@@ -61,6 +75,17 @@ class PandaRobot(Robot):
             self.gripper_closed = False
             self.gripper.stop()
             self.gripper.goto(width=MAX_OPEN, speed=1, force=1)
+
+        # Publish gello ee_pose
+        gello_joint_positions = torch.tensor(joint_state[:-1])
+        link8_pos, link8_quat = self.robot.robot_model.forward_kinematics(gello_joint_positions)
+        link8_rot = Rotation.from_quat(link8_quat).as_matrix().numpy()
+        link8_pose = np.eye(4)
+        link8_pose[:3, :3] = link8_rot
+        link8_pose[:3, 3] = link8_pos
+        ee_pose_desired = link8_pose @ self.link8Thand
+        ee_pose_desired_zenoh = np_to_zenoh(ee_pose_desired)
+        self.ee_desired_pub.put(**ee_pose_desired_zenoh)
         return
 
     def get_observations(self) -> Dict[str, np.ndarray]:
