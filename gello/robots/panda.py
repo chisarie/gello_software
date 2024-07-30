@@ -8,7 +8,7 @@ import numpy as np
 
 from gello.robots.robot import Robot
 from torchcontrol.transform import Rotation
-from robo_utils.zenoh_utils import np_to_zenoh
+from robo_utils.robot_state import EEAction
 
 MAX_OPEN = 0.08
 
@@ -84,8 +84,9 @@ class PandaRobot(Robot):
         link8_pose[:3, :3] = link8_rot
         link8_pose[:3, 3] = link8_pos
         ee_pose_desired = link8_pose @ self.link8Thand
-        ee_pose_desired_zenoh = np_to_zenoh(ee_pose_desired)
-        self.ee_desired_pub.put(**ee_pose_desired_zenoh)
+        ee_action = EEAction(ee_pose_desired, not gripper_closed)
+        ee_action_zenoh = ee_action.to_zenoh()
+        self.ee_desired_pub.put(**ee_action_zenoh)
         return
 
     def get_observations(self) -> Dict[str, np.ndarray]:
